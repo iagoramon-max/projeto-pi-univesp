@@ -1,0 +1,17 @@
+{% extends 'agendamento/base.html' %}
+
+{% block title %}Agenda para {{ servico.nome }}{% endblock %}
+
+{% block content %}
+    <h2 class="mb-3">Agendando o serviço: <strong>{{ servico.nome }}</strong></h2>
+    <h4 class="mb-4 text-muted">Horários Disponíveis para {{ dia }}</h4>
+
+    <div class="list-group">
+        {% for horario in horarios %}
+            <a href="{% url 'confirmar_agendamento' servico.id horario %}" class="list-group-item list-group-item-action text-center">
+                {{ horario }}
+            </a>
+        {% endfor %}
+    </div>
+    <a href="{% url 'listar_servicos' %}" class="btn btn-secondary mt-4">Voltar para a lista de serviços</a>
+{% endblock %}

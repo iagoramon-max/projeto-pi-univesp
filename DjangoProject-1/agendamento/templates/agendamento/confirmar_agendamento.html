@@ -1,0 +1,36 @@
+{% extends 'agendamento/base.html' %}
+
+{% block title %}Confirmar Agendamento{% endblock %}
+
+{% block content %}
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title">Confirmar Agendamento</h3>
+                </div>
+                <div class="card-body">
+                    <p><strong>Serviço:</strong> {{ servico.nome }}</p>
+                    <p><strong>Horário:</strong> {{ horario }}</p>
+                    <hr>
+                    <p>Por favor, preencha seus dados para confirmar.</p>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="nome" class="form-label">Seu Nome:</label>
+                            <input type="text" class="form-control" id="nome" name="nome" required>
+                        </div>
+                        <div class="mb-3">
+                            <label for="email" class="form-label">Seu E-mail:</label>
+                            <input type="email" class="form-control" id="email" name="email" required>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-success btn-lg">Confirmar Agendamento</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

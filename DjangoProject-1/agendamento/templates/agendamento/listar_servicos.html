@@ -1,0 +1,18 @@
+{% extends 'agendamento/base.html' %}
+
+{% block title %}Nossos Serviços{% endblock %}
+
+{% block content %}
+    <h2 class="mb-4">Conheça Nossos Serviços</h2>
+
+    {% for servico in servicos %}
+        <div class="card mb-3">
+            <div class="card-body">
+                <h5 class="card-title">{{ servico.nome }}</h5>
+                <p class="card-text">Duração: {{ servico.duracao_minutos }} minutos</p>
+                <p class="card-text"><small class="text-muted">{{ servico.descricao|default:"" }}</small></p>
+                <a href="{% url 'agenda' servico.id %}" class="btn btn-primary">Agendar este Serviço</a>
+            </div>
+        </div>
+    {% endfor %}
+{% endblock %}
