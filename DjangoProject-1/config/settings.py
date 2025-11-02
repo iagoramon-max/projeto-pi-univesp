@@ -26,10 +26,10 @@ SECRET_KEY = 'django-insecure-_x!!b1x9wfz1)7^6mcb$d$ljvdt%7r093_o1+m07qzp9()*pgz
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = os.environ.get('RENDER_EXTERNAL_URL', 'localhost,127.0.0.1').split(',')
+ALLOWED_HOSTS = ['projeto-pi-univesp.onrender.com', 'localhost', '127.0.0.1']
 
 # Configuração de segurança para o Railway
-CSRF_TRUSTED_ORIGINS = [f"https://{host}" for host in os.environ.get('RENDER_EXTERNAL_URL', '').split(',') if host]
+CSRF_TRUSTED_ORIGINS = ['https://projeto-pi-univesp.onrender.com']
 
 
 # Application definition
@@ -125,5 +125,6 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
 
 
