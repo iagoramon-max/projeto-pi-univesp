@@ -1,3 +1,4 @@
+import os
 """
 Django settings for config project.
 
@@ -23,9 +24,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-_x!!b1x9wfz1)7^6mcb$d$ljvdt%7r093_o1+m07qzp9()*pgz'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = os.environ.get('RAILWAY_STATIC_URL', 'localhost,127.0.0.1').split(',')
+
+# Configuração de segurança para o Railway
+CSRF_TRUSTED_ORIGINS = [f"https://{host}" for host in os.environ.get('RAILWAY_STATIC_URL', '').split(',') if host]
 
 
 # Application definition
@@ -121,3 +125,4 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
