@@ -1,3 +1,5 @@
 django
 gunicorn
 requests
+admin-interface
+django-colorfield
