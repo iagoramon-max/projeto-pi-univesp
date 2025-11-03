@@ -1,32 +1,28 @@
 {% extends 'base.html' %} 
 
-{% block title %}Serviços{% endblock %}
+{% block title %}Serviços Disponíveis{% endblock %}
 
 {% block content %}
-    <h1 class="mb-4">Serviços Disponíveis</h1>
+    <h1 style="color: #333;">Conheça Nossos Serviços</h1>
     <p>Escolha um serviço para agendar ou inicie o contato pelo WhatsApp.</p>
     <hr>
 
     {% for servico in servicos %}
-        <div class="card mb-3 shadow-sm">
-            <div class="card-body">
-                <h5 class="card-title text-primary">{{ servico.nome }}</h5>
-                <p class="card-text">
-                    <strong>Duração:</strong> {{ servico.duracao_minutos }} minutos<br>
-                    <strong>Valor:</strong> <span class="badge badge-success">R$ {{ servico.valor|stringformat:".2f" }}</span>
-                </p>
-                <a href="{% url 'agenda' servico.id %}" class="btn btn-primary">
-                    Agendar Agora
-                </a>
-            </div>
+        <div style="border: 1px solid #ccc; padding: 15px; margin-bottom: 15px; border-radius: 5px; background-color: white;">
+            <h2 style="color: #007bff; margin-top: 0;">{{ servico.nome }}</h2>
+            <p><strong>Duração:</strong> {{ servico.duracao_minutos }} minutos</p>
+            <p><strong>Valor:</strong> R$ {{ servico.valor|stringformat:".2f" }}</p>
+            
+            <a href="/agenda/{{ servico.id }}/" style="text-decoration: none; color: white; background-color: #28a745; padding: 8px 15px; border-radius: 5px; display: inline-block;">
+                Agendar este Serviço
+            </a>
         </div>
     {% empty %}
-        <div class="alert alert-warning" role="alert">
-            Nenhum serviço disponível no momento.
-        </div>
+        <p>Nenhum serviço disponível no momento.</p>
     {% endfor %}
 
-    <a href="https://api.whatsapp.com/send?phone=SEU_NUMERO_WHATSAPP_AQUI" class="btn btn-success mt-4">
+    <a href="https://api.whatsapp.com/send?phone=+15556342247&text=Ol%C3%A1%2C%20quero%20agendar%20um%20servi%C3%A7o" 
+        target="_blank" style="text-decoration: none; color: white; background-color: #25D366; padding: 10px 20px; border-radius: 25px; display: block; width: 300px; text-align: center; margin-top: 30px;">
         Falar com Assistente pelo WhatsApp
     </a>
 {% endblock %}
