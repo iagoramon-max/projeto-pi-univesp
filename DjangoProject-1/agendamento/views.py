@@ -109,37 +109,71 @@ def webhook(request):
                 from_number = message_data['from']
                 message_type = message_data['type']
                 
-                # A Meta só envia o 'text' se for uma mensagem de texto simples
+               # A Meta só envia o 'text' se for uma mensagem de texto simples
                 if message_type == 'text':
-                    text_content = message_data['text']['body']
+                    text_content = message_data['text']['body'].strip()
                     print(f"Mensagem de {from_number}: {text_content}")
 
-                    # --- LÓGICA DE RESPOSTA ---
-                    # 1. Headers (Inclui seu token secreto)
+                    # --- 1. ENCONTRAR OU CRIAR O CLIENTE ---
+                    # Usa o número de telefone como identificador único
+                    cliente, created = Cliente.objects.get_or_create(
+                        telefone=from_number
+                    )
+                    
+                    # Se for a primeira mensagem, define a mensagem de boas-vindas
+                    if created:
+                        cliente.status = 0 # Define status INICIO
+                        cliente.save()
+
+
+                    # --- 2. MÁQUINA DE ESTADOS (STATE MACHINE) ---
+                    
+                    if cliente.status == 0:
+                        # STATUS 0: CLIENTE NOVO. PEDE O NOME.
+                        response_text = f"Olá, sou o assistente de agendamento. Para começarmos, qual é o seu nome completo?"
+                        cliente.status = 1 # PRÓXIMO STATUS: Esperando o nome
+                        cliente.save()
+                    
+                    elif cliente.status == 1:
+                        # STATUS 1: ESPERANDO NOME. SALVA E PEDE O SERVIÇO.
+                        cliente.nome = text_content # Salva o nome fornecido
+                        cliente.save()
+                        
+                        # Lista de serviços (vamos simplificar por agora)
+                        servicos = Servico.objects.all()
+                        lista_servicos = "\n".join([f"({s.id}) {s.nome} - R${s.valor:.2f}" for s in servicos])
+                        
+                        response_text = (
+                            f"Obrigado, {cliente.nome}! Agora, escolha o serviço digitando apenas o número:\n"
+                            "---------------------------------------\n"
+                            f"{lista_servicos}\n"
+                            "---------------------------------------"
+                        )
+                        cliente.status = 2 # PRÓXIMO STATUS: Esperando o Serviço
+                        cliente.save()
+                        
+                    else:
+                        # Para qualquer outro status (temporário), avisa que o bot está ocupado
+                        response_text = "Desculpe, estou no meio de um agendamento. Por favor, responda com o que eu pedi anteriormente."
+
+
+                    # --- 3. PREPARAR RESPOSTA PARA A META ---
                     headers = {
                         "Authorization": f"Bearer {WHATSAPP_TOKEN}",
                         "Content-Type": "application/json",
                     }
-
-                    # 2. Corpo da Resposta (Mensagem de Boas-Vindas)
                     response_body = {
                         "messaging_product": "whatsapp",
                         "to": from_number,
                         "type": "text",
                         "text": {
-                            "body": "🤖 Olá! Sou o assistente de agendamento. Vamos começar seu agendamento!"
+                            "body": response_text
                         }
                     }
 
-                    # 3. ENVIO: Tenta enviar a mensagem para a Meta
+                    # 4. ENVIO: Tenta enviar a mensagem para a Meta
                     response = requests.post(API_URL, headers=headers, json=response_body)
-                    
-                    if response.status_code == 200:
-                        print("Resposta enviada com sucesso para a Meta.")
-                    else:
-                        # Este erro é crítico, precisamos saber se o token está errado
-                        print(f"ERRO ao enviar para Meta: Status {response.status_code} - {response.text}")
-                    # --- FIM DA LÓGICA DE RESPOSTA ---
+                    # ... (resto do código de envio e tratamento de erros) ...
 
             return HttpResponse(status=200) # Sempre responda 200 para a Meta, mesmo se der erro
 
@@ -149,3 +183,4 @@ def webhook(request):
             return HttpResponse(status=200)
 
     return HttpResponse('método não permitido', status=405)
+
