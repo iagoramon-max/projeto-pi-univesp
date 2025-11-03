@@ -28,7 +28,7 @@ DEBUG = os.environ.get('DEBUG', 'False') == 'True'
 
 ALLOWED_HOSTS = ['projeto-pi-univesp.onrender.com', 'localhost', '127.0.0.1']
 
-# Configuração de segurança para o Railway
+# Configuração de segurança para o Render
 CSRF_TRUSTED_ORIGINS = ['https://projeto-pi-univesp.onrender.com']
 
 
@@ -36,8 +36,6 @@ CSRF_TRUSTED_ORIGINS = ['https://projeto-pi-univesp.onrender.com']
 
 INSTALLED_APPS = [
     'agendamento',
-    'admin_interface', 
-    'colorfield',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -127,10 +125,3 @@ STATIC_URL = 'static/'
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Configuração do Tema Admin Interface
-X_FRAME_OPTIONS = 'SAMEORIGIN'
-DJOSER = {} # Você pode precisar adicionar isso se Djoser estiver ativo
-
-
-
