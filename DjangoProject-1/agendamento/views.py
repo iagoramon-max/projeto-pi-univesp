@@ -1,26 +1,23 @@
 import os
 import json
-import requests # NOVO: Para fazer requisições HTTP para a Meta
+import requests
 import datetime
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-# IMPORTANTE: Adicionar o modelo Cliente (mesmo que as migrações tenham falhado)
+# IMPORTANTE: Incluir Cliente nos imports
 from .models import Servico, Agendamento, Cliente 
 
 
 # --- VARIÁVEIS DE AMBIENTE (SEGREDO) ---
-# O Render nos obriga a ler segredos dessa forma.
 WHATSAPP_TOKEN = os.environ.get("WHATSAPP_TOKEN")
 PHONE_NUMBER_ID = os.environ.get("PHONE_NUMBER_ID")
-# NOVO: Variável APP_SECRET que discutimos (para segurança futura)
 APP_SECRET = os.environ.get("APP_SECRET") 
 API_URL = f"https://graph.facebook.com/v19.0/{PHONE_NUMBER_ID}/messages"
 
 
-# --- FUNÇÕES EXISTENTES DO DJANGO (Não mexer) ---
-
+# --- FUNÇÕES EXISTENTES DO DJANGO ---
 def listar_servicos(request):
     servicos = Servico.objects.all()
     contexto = {
@@ -29,6 +26,7 @@ def listar_servicos(request):
     return render(request, 'agendamento/listar_servicos.html', contexto)
 
 def agenda(request, servico_id):
+    # ... (código agenda, não alterado)
     servico = Servico.objects.get(id=servico_id)
     hoje = datetime.date.today()
     agendamentos_hoje = Agendamento.objects.filter(data_hora_inicio__date=hoje)
@@ -46,6 +44,7 @@ def agenda(request, servico_id):
     return render(request, 'agendamento/agenda.html', contexto)
 
 def confirmar_agendamento(request, servico_id, horario):
+    # ... (código confirmar_agendamento, não alterado)
     servico = Servico.objects.get(id=servico_id)
     data_hora = datetime.datetime.strptime(f"{datetime.date.today()} {horario}", "%Y-%m-%d %H:%M")
     if request.method == 'POST':
@@ -66,11 +65,10 @@ def confirmar_agendamento(request, servico_id, horario):
     return render(request, 'agendamento/confirmar_agendamento.html', contexto)
 
 
-# --- FUNÇÃO WEBHOOK ATUALIZADA (O CÉREBRO DO BOT) ---
+# --- FUNÇÃO WEBHOOK COMPLETA E CORRIGIDA ---
 
 @csrf_exempt
 def webhook(request):
-    # Este é o token que você inventou no painel do Facebook
     VERIFY_TOKEN = "univesp2025"
 
     # 1. VERIFICAÇÃO DO WEBHOOK (GET)
@@ -88,13 +86,11 @@ def webhook(request):
     # 2. RECEBIMENTO E RESPOSTA DA MENSAGEM (POST)
     if request.method == 'POST':
         
-        # --- CORREÇÃO CRÍTICA AQUI ---
+        # Tentativa de decodificação à prova de falhas
         try:
-            # Tenta decodificar o corpo da requisição com UTF-8
             data = json.loads(request.body.decode('utf-8')) 
         except json.JSONDecodeError as e:
             print(f"ERRO DE DECODIFICAÇÃO JSON: {e}")
-            # Se a decodificação falhar, não podemos processar. Retorna 400.
             return HttpResponse(status=400) 
         
         print("MENSAGEM DO WHATSAPP RECEBIDA:")
@@ -109,29 +105,25 @@ def webhook(request):
                 from_number = message_data['from']
                 message_type = message_data['type']
                 
-               # A Meta só envia o 'text' se for uma mensagem de texto simples
+                # --- 1. ENCONTRAR OU CRIAR O CLIENTE ---
+                cliente, created = Cliente.objects.get_or_create(
+                    telefone=from_number
+                )
+                
+                # Se for a primeira mensagem, define a mensagem de boas-vindas
+                if created:
+                    cliente.status = 0
+                
                 if message_type == 'text':
                     text_content = message_data['text']['body'].strip()
                     print(f"Mensagem de {from_number}: {text_content}")
-
-                    # --- 1. ENCONTRAR OU CRIAR O CLIENTE ---
-                    # Usa o número de telefone como identificador único
-                    cliente, created = Cliente.objects.get_or_create(
-                        telefone=from_number
-                    )
-                    
-                    # Se for a primeira mensagem, define a mensagem de boas-vindas
-                    if created:
-                        cliente.status = 0 # Define status INICIO
-                        cliente.save()
-
 
                     # --- 2. MÁQUINA DE ESTADOS (STATE MACHINE) ---
                     
                     if cliente.status == 0:
                         # STATUS 0: CLIENTE NOVO. PEDE O NOME.
                         response_text = f"Olá, sou o assistente de agendamento. Para começarmos, qual é o seu nome completo?"
-                        cliente.status = 1 # PRÓXIMO STATUS: Esperando o nome
+                        cliente.status = 1 
                         cliente.save()
                     
                     elif cliente.status == 1:
@@ -139,7 +131,7 @@ def webhook(request):
                         cliente.nome = text_content # Salva o nome fornecido
                         cliente.save()
                         
-                        # Lista de serviços (vamos simplificar por agora)
+                        # Lista de serviços
                         servicos = Servico.objects.all()
                         lista_servicos = "\n".join([f"({s.id}) {s.nome} - R${s.valor:.2f}" for s in servicos])
                         
@@ -149,7 +141,10 @@ def webhook(request):
                             f"{lista_servicos}\n"
                             "---------------------------------------"
                         )
-                        elif cliente.status == 2:
+                        cliente.status = 2 
+                        cliente.save()
+                        
+                    elif cliente.status == 2:
                         # STATUS 2: ESPERANDO SERVIÇO. VALIDA ESCOLHA E PEDE A DATA.
                         try:
                             servico_id = int(text_content)
@@ -157,7 +152,7 @@ def webhook(request):
                             
                             # Salva a escolha e avança
                             cliente.servico_escolhido = servico_escolhido
-                            cliente.status = 3 # PRÓXIMO STATUS: Esperando a Data
+                            cliente.status = 3
                             cliente.save()
                             
                             response_text = (
@@ -170,29 +165,20 @@ def webhook(request):
                             
                     elif cliente.status == 3:
                         # STATUS 3: ESPERANDO DATA. VALIDA E PEDE O HORÁRIO.
-                        # NOTA: O código de validação de data é complexo. Vamos assumir que é válida para fins de PI.
+                        # Aqui você colocaria a validação de data
                         data_string = text_content.strip()
-                        
-                        # A próxima etapa seria validar a data aqui...
-                        # Por simplicidade do PI: apenas guardamos a string por enquanto
-                        
-                        # Aqui você precisaria de uma função para listar horários disponíveis (a lógica já está em views.py)
                         
                         response_text = (
                             f"Perfeito! Para *{data_string}*, quais horários você gostaria de reservar?\n"
                             "Digite apenas o número de uma opção (Ex: 10:00, 11:30, etc.)."
                         )
                         # Este é o último status que vamos implementar hoje, Mestre.
-                        cliente.status = 4 # PRÓXIMO STATUS: Esperando a Hora
+                        cliente.status = 4 
                         cliente.save()
                         
                     else:
                         # Para qualquer outro status, informa que a sessão está ativa
                         response_text = "Desculpe, ainda estamos finalizando seu agendamento. Por favor, digite 'cancelar' para começar de novo."
-                        
-                    else:
-                        # Para qualquer outro status (temporário), avisa que o bot está ocupado
-                        response_text = "Desculpe, estou no meio de um agendamento. Por favor, responda com o que eu pedi anteriormente."
 
 
                     # --- 3. PREPARAR RESPOSTA PARA A META ---
@@ -211,7 +197,13 @@ def webhook(request):
 
                     # 4. ENVIO: Tenta enviar a mensagem para a Meta
                     response = requests.post(API_URL, headers=headers, json=response_body)
-                    # ... (resto do código de envio e tratamento de erros) ...
+                    
+                    if response.status_code == 200:
+                        print("Resposta enviada com sucesso para a Meta.")
+                    else:
+                        # Este erro é crítico, precisamos saber se o token está errado
+                        print(f"ERRO ao enviar para Meta: Status {response.status_code} - {response.text}")
+                    # --- FIM DA LÓGICA DE RESPOSTA ---
 
             return HttpResponse(status=200) # Sempre responda 200 para a Meta, mesmo se der erro
 
@@ -221,5 +213,3 @@ def webhook(request):
             return HttpResponse(status=200)
 
     return HttpResponse('método não permitido', status=405)
-
-
