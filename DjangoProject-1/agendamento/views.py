@@ -1,19 +1,21 @@
 import os
 import json
-import requests  # NOVO: Para fazer requisições HTTP para a Meta
+import requests # NOVO: Para fazer requisições HTTP para a Meta
 import datetime
 from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 
-from .models import Servico, Agendamento # Certifique-se de que Cliente também está importado se existir
+# IMPORTANTE: Adicionar o modelo Cliente (mesmo que as migrações tenham falhado)
+from .models import Servico, Agendamento, Cliente 
 
 
 # --- VARIÁVEIS DE AMBIENTE (SEGREDO) ---
 # O Render nos obriga a ler segredos dessa forma.
-# Você deve obter estes valores do seu painel da Meta for Developers e colocá-los no Render
 WHATSAPP_TOKEN = os.environ.get("WHATSAPP_TOKEN")
 PHONE_NUMBER_ID = os.environ.get("PHONE_NUMBER_ID")
+# NOVO: Variável APP_SECRET que discutimos (para segurança futura)
+APP_SECRET = os.environ.get("APP_SECRET") 
 API_URL = f"https://graph.facebook.com/v19.0/{PHONE_NUMBER_ID}/messages"
 
 
@@ -85,9 +87,18 @@ def webhook(request):
 
     # 2. RECEBIMENTO E RESPOSTA DA MENSAGEM (POST)
     if request.method == 'POST':
-        data = json.loads(request.body)
+        
+        # --- CORREÇÃO CRÍTICA AQUI ---
+        try:
+            # Tenta decodificar o corpo da requisição com UTF-8
+            data = json.loads(request.body.decode('utf-8')) 
+        except json.JSONDecodeError as e:
+            print(f"ERRO DE DECODIFICAÇÃO JSON: {e}")
+            # Se a decodificação falhar, não podemos processar. Retorna 400.
+            return HttpResponse(status=400) 
+        
         print("MENSAGEM DO WHATSAPP RECEBIDA:")
-        print(data) 
+        print(data)  
 
         try:
             # Garante que é um tipo de mensagem válida (e não um status de leitura)
@@ -133,9 +144,8 @@ def webhook(request):
             return HttpResponse(status=200) # Sempre responda 200 para a Meta, mesmo se der erro
 
         except Exception as e:
-            # Erro geral de processamento
+            # Erro geral de processamento (pode ser o formato do payload inesperado)
             print(f"ERRO ao processar payload: {e}")
             return HttpResponse(status=200)
 
     return HttpResponse('método não permitido', status=405)
-
