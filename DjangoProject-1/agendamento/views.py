@@ -1,15 +1,25 @@
-from django.shortcuts import render, redirect
-from .models import Servico, Agendamento
-import datetime
-
-# --- ADICIONE ESTAS LINHAS NOVAS NO TOPO ---
+import os
 import json
+import requests  # NOVO: Para fazer requisições HTTP para a Meta
+import datetime
+from django.shortcuts import render, redirect
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.csrf import csrf_exempt
-# -----------------------------------------
+
+from .models import Servico, Agendamento # Certifique-se de que Cliente também está importado se existir
+
+
+# --- VARIÁVEIS DE AMBIENTE (SEGREDO) ---
+# O Render nos obriga a ler segredos dessa forma.
+# Você deve obter estes valores do seu painel da Meta for Developers e colocá-los no Render
+WHATSAPP_TOKEN = os.environ.get("WHATSAPP_TOKEN")
+PHONE_NUMBER_ID = os.environ.get("PHONE_NUMBER_ID")
+API_URL = f"https://graph.facebook.com/v19.0/{PHONE_NUMBER_ID}/messages"
+
+
+# --- FUNÇÕES EXISTENTES DO DJANGO (Não mexer) ---
 
 def listar_servicos(request):
-    # ... (código existente, não precisa mexer)
     servicos = Servico.objects.all()
     contexto = {
         'servicos': servicos
@@ -17,7 +27,6 @@ def listar_servicos(request):
     return render(request, 'agendamento/listar_servicos.html', contexto)
 
 def agenda(request, servico_id):
-    # ... (código existente, não precisa mexer)
     servico = Servico.objects.get(id=servico_id)
     hoje = datetime.date.today()
     agendamentos_hoje = Agendamento.objects.filter(data_hora_inicio__date=hoje)
@@ -35,7 +44,6 @@ def agenda(request, servico_id):
     return render(request, 'agendamento/agenda.html', contexto)
 
 def confirmar_agendamento(request, servico_id, horario):
-    # ... (código existente, não precisa mexer)
     servico = Servico.objects.get(id=servico_id)
     data_hora = datetime.datetime.strptime(f"{datetime.date.today()} {horario}", "%Y-%m-%d %H:%M")
     if request.method == 'POST':
@@ -55,13 +63,15 @@ def confirmar_agendamento(request, servico_id, horario):
     }
     return render(request, 'agendamento/confirmar_agendamento.html', contexto)
 
-# --- ADICIONE A FUNÇÃO INTEIRA ABAIXO ---
-@csrf_exempt # Desliga uma proteção de segurança SÓ para esta função
+
+# --- FUNÇÃO WEBHOOK ATUALIZADA (O CÉREBRO DO BOT) ---
+
+@csrf_exempt
 def webhook(request):
     # Este é o token que você inventou no painel do Facebook
     VERIFY_TOKEN = "univesp2025"
 
-    # Se o Facebook está tentando validar nosso endereço
+    # 1. VERIFICAÇÃO DO WEBHOOK (GET)
     if request.method == 'GET':
         mode = request.GET.get('hub.mode')
         token = request.GET.get('hub.verify_token')
@@ -73,11 +83,59 @@ def webhook(request):
         else:
             return HttpResponse('erro de validação', status=403)
 
-    # Se o Facebook está nos enviando uma mensagem de um usuário
+    # 2. RECEBIMENTO E RESPOSTA DA MENSAGEM (POST)
     if request.method == 'POST':
         data = json.loads(request.body)
         print("MENSAGEM DO WHATSAPP RECEBIDA:")
-        print(data) # Mostra a mensagem no nosso terminal do VS Code
-        return HttpResponse(status=200)
+        print(data) 
+
+        try:
+            # Garante que é um tipo de mensagem válida (e não um status de leitura)
+            if 'messages' in data['entry'][0]['changes'][0]['value']:
+                
+                # Extrai dados essenciais
+                message_data = data['entry'][0]['changes'][0]['value']['messages'][0]
+                from_number = message_data['from']
+                message_type = message_data['type']
+                
+                # A Meta só envia o 'text' se for uma mensagem de texto simples
+                if message_type == 'text':
+                    text_content = message_data['text']['body']
+                    print(f"Mensagem de {from_number}: {text_content}")
+
+                    # --- LÓGICA DE RESPOSTA ---
+                    # 1. Headers (Inclui seu token secreto)
+                    headers = {
+                        "Authorization": f"Bearer {WHATSAPP_TOKEN}",
+                        "Content-Type": "application/json",
+                    }
+
+                    # 2. Corpo da Resposta (Mensagem de Boas-Vindas)
+                    response_body = {
+                        "messaging_product": "whatsapp",
+                        "to": from_number,
+                        "type": "text",
+                        "text": {
+                            "body": "🤖 Olá! Sou o assistente de agendamento. Vamos começar seu agendamento!"
+                        }
+                    }
+
+                    # 3. ENVIO: Tenta enviar a mensagem para a Meta
+                    response = requests.post(API_URL, headers=headers, json=response_body)
+                    
+                    if response.status_code == 200:
+                        print("Resposta enviada com sucesso para a Meta.")
+                    else:
+                        # Este erro é crítico, precisamos saber se o token está errado
+                        print(f"ERRO ao enviar para Meta: Status {response.status_code} - {response.text}")
+                    # --- FIM DA LÓGICA DE RESPOSTA ---
+
+            return HttpResponse(status=200) # Sempre responda 200 para a Meta, mesmo se der erro
+
+        except Exception as e:
+            # Erro geral de processamento
+            print(f"ERRO ao processar payload: {e}")
+            return HttpResponse(status=200)
 
     return HttpResponse('método não permitido', status=405)
+
