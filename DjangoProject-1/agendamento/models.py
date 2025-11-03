@@ -39,4 +39,31 @@ class Agendamento(models.Model):
     confirmado = models.BooleanField(default=False)
 
     def __str__(self):
+
         return f"{self.nome_cliente} - {self.servico.nome} em {self.data_hora_inicio.strftime('%d/%m/%Y %H:%M')}"
+
+# --- NOVO MODELO PARA RASTREAR O CLIENTE NO CHAT ---
+class Cliente(models.Model):
+    telefone = models.CharField(max_length=20, unique=True)
+    nome = models.CharField(max_length=100, blank=True, null=True)
+    
+    # 0: Início/Aguardando, 1: Esperando Nome, 2: Esperando Serviço, 3: Esperando Data, etc.
+    STATUS_CHOICES = [
+        (0, 'INICIO'),
+        (1, 'ESPERANDO_NOME'),
+        (2, 'ESPERANDO_SERVICO'),
+        (3, 'ESPERANDO_DATA'),
+        (4, 'ESPERANDO_HORA'),
+        (5, 'CONFIRMACAO'),
+        (9, 'COMPLETO'),
+    ]
+    status = models.IntegerField(default=0, choices=STATUS_CHOICES)
+    
+    # Rastrear o serviço escolhido
+    servico_escolhido = models.ForeignKey(Servico, on_delete=models.SET_NULL, null=True, blank=True)
+    
+    # Armazenar a data/hora temporária
+    data_hora_agendamento = models.DateTimeField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.nome} ({self.telefone})"
