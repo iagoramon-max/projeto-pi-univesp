@@ -1,29 +1,32 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Serviços Disponíveis</title>
-    <style>
-        body { font-family: Arial, sans-serif; margin: 50px; }
-        h1 { color: #333; }
-        .service { border: 1px solid #ccc; padding: 15px; margin-bottom: 10px; border-radius: 5px; }
-        .service h2 { color: #007bff; margin-top: 0; }
-        .service p { margin: 5px 0; }
-    </style>
-</head>
-<body>
-    <h1>Serviços de Estética</h1>
-    <p>Estes são os serviços disponíveis. Para agendar, clique no serviço desejado ou use nosso assistente virtual pelo WhatsApp.</p>
+{% extends 'base.html' %} 
+
+{% block title %}Serviços{% endblock %}
+
+{% block content %}
+    <h1 class="mb-4">Serviços Disponíveis</h1>
+    <p>Escolha um serviço para agendar ou inicie o contato pelo WhatsApp.</p>
     <hr>
 
     {% for servico in servicos %}
-        <div class="service">
-            <h2>{{ servico.nome }}</h2>
-            <p><strong>Duração:</strong> {{ servico.duracao_minutos }} minutos</p>
-            <p><strong>Valor:</strong> R$ {{ servico.valor|stringformat:".2f" }}</p>
-            <a href="/agenda/{{ servico.id }}" style="text-decoration: none; color: white; background-color: green; padding: 8px 15px; border-radius: 5px;">Agendar Agora</a>
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body">
+                <h5 class="card-title text-primary">{{ servico.nome }}</h5>
+                <p class="card-text">
+                    <strong>Duração:</strong> {{ servico.duracao_minutos }} minutos<br>
+                    <strong>Valor:</strong> <span class="badge badge-success">R$ {{ servico.valor|stringformat:".2f" }}</span>
+                </p>
+                <a href="{% url 'agenda' servico.id %}" class="btn btn-primary">
+                    Agendar Agora
+                </a>
+            </div>
         </div>
     {% empty %}
-        <p>Nenhum serviço disponível no momento.</p>
+        <div class="alert alert-warning" role="alert">
+            Nenhum serviço disponível no momento.
+        </div>
     {% endfor %}
-</body>
-</html>
+
+    <a href="https://api.whatsapp.com/send?phone=SEU_NUMERO_WHATSAPP_AQUI" class="btn btn-success mt-4">
+        Falar com Assistente pelo WhatsApp
+    </a>
+{% endblock %}
