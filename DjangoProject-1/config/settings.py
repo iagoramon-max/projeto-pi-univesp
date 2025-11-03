@@ -128,6 +128,9 @@ STATIC_URL = 'static/'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+# Configuração do Tema Admin Interface
+X_FRAME_OPTIONS = 'SAMEORIGIN'
+DJOSER = {} # Você pode precisar adicionar isso se Djoser estiver ativo
 
 
 
