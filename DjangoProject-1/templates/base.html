@@ -1,30 +1,27 @@
-{% load bootstrap4 %}
 {% load static %}
 <!doctype html>
 <html lang="pt-br">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    {% bootstrap_css %}
     <title>{% block title %}Agendamento Estética{% endblock %}</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 50px; background-color: #f8f9fa; }
+        .navbar { background-color: #007bff; color: white; padding: 10px; margin-bottom: 30px; }
+        .navbar a { color: white; margin-right: 20px; text-decoration: none; }
+        .container { max-width: 900px; margin: auto; }
+        h1 { border-bottom: 2px solid #ccc; padding-bottom: 10px; }
+    </style>
   </head>
   <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-      <a class="navbar-brand" href="/">🏠 Agendamento Estética</a>
-      <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarNavAltMarkup" aria-controls="navbarNavAltMarkup" aria-expanded="false" aria-label="Toggle navigation">
-        <span class="navbar-toggler-icon"></span>
-      </button>
-      <div class="collapse navbar-collapse" id="navbarNavAltMarkup">
-        <div class="navbar-nav">
-          <a class="nav-item nav-link active" href="/">Serviços <span class="sr-only">(current)</span></a>
-          <a class="nav-item nav-link" href="/admin">Gerenciamento</a>
-        </div>
-      </div>
+    <nav class="navbar">
+      <a href="/">🏠 Agendamento Estética</a>
+      <a href="/">Serviços</a>
+      <a href="/admin">Gerenciamento</a>
     </nav>
-    <div class="container mt-4">
+    <div class="container">
         {% block content %}{% endblock %}
     </div>
 
-    {% bootstrap_javascript jquery='full' %}
-  </body>
+    </body>
 </html>
